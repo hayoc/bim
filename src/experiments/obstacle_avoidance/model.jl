@@ -1,18 +1,3 @@
-using Revise
-using RxInfer
-
-includet("../world/flat.jl")
-
-using .FlatWorld
-
-
-rows, cols = 10, 10
-obstacles = [(2, 3)]
-
-grid = create_environment(rows, cols, obstacles)
-plot_environment(grid)
-
-
 # @model function parr_book(prior, y)
 #     frog_or_apple ~ prior # frog = 0 (and thus apple = 1)
 #     T_mat = [0.99 0.19; 
@@ -34,3 +19,9 @@ plot_environment(grid)
 # end
 
 # run()
+
+
+# result = infer(
+#     model = beta_bernoulli(a = 1.0, b = 1.0),
+#     data  = (y = [ missing, missing, missing, missing, missing ], )
+# )

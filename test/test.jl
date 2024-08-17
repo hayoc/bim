@@ -1,5 +1,9 @@
-using Plots
+using Pkg
 
-x = range(0, 10, length=100)
-y = sin.(x)
-plot(x, y)
+Pkg.activate(joinpath(@__DIR__, ".."))
+
+include(joinpath(@__DIR__, "..", "src", "Bipom.jl"))
+
+using .Bipom
+
+PathIntegration.path_integration()

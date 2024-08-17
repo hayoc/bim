@@ -4,31 +4,21 @@ export create_environment, plot_environment
 
 using Plots
 
-function create_environment(rows::Int, cols::Int, obstacles::Vector{Tuple{Int, Int}})
-    grid = fill(0, rows, cols)
-    
-    for (x, y) in obstacles
-        grid[x, y] = 1
+function create_environment(rows::Int, cols::Int, num_obstacles::Int)
+    obstacles = Array{Tuple{Float64, Float64}}(undef, num_obstacles)
+    for i in 1:num_obstacles
+        obs = (rand(-(rows/2):rows/2), rand(-(cols/2):cols/2))
+        obstacles[i] = obs
     end
     
-    return grid
+    return obstacles
 end
 
-function plot_environment(grid)
-    println(grid)
-    rows, cols = size(grid)
-    
-    plt = plot(xlim=(0, cols), ylim=(0, rows), legend=false, aspect_ratio=:equal, ticks=false)
+function plot_environment(rows::Int, cols::Int, obstacles::Array{Tuple{Float64, Float64}})
+    plt = plot(xlim=(-(cols/2), cols/2), ylim=(-(rows/2), rows/2), legend=false, aspect_ratio=:equal, ticks=false)
+    scatter!(plt, obstacles, color=:red, marker=:circle, markersize=2)
 
-    for x in 1:rows
-        for y in 1:cols
-            if grid[x, y] == 1
-                scatter!(plt, [x], [y], color=:red, marker=:circle, markersize=2)
-            end
-        end
-    end
-    
-    display(plt)
+    return plt
 end
 
 end # Module FlatWorld
