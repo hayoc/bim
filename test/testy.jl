@@ -27,7 +27,7 @@ function collision(p, t1, t2, t3)
     return point_in_triangle(px, py, x1, y1, x2, y2, x3, y3)
 end
 
-function run()
+function run1()
     center = [5, 5]
     v = 2
     plot([center[1]], [center[2]], seriestype=:scatter, legend=false, xlims=(0,10), ylims=(0,10))
@@ -37,8 +37,8 @@ function run()
     obstacle = [5.8,5.4]
 
     line_middle = end_line(center[1], center[2], v, rot)
-    line_left = end_line(center[1], center[2], v, rot+0.5)
-    line_right = end_line(center[1], center[2], v, rot-0.5)
+    line_left = end_line(center[1], center[2], v, rot+1.2)
+    line_right = end_line(center[1], center[2], v, rot-1.2)
 
     if collision(obstacle, center, line_left, line_middle)
         print("YES")
@@ -50,12 +50,35 @@ function run()
 
     plot!([center[1], line_middle[1]], [center[2], line_middle[2]], legend=false)
     plot!([center[1], line_left[1]], [center[2], line_left[2]], legend=false)
-    #plot!([center[1], line_right[1]], [center[2], line_right[2]], legend=false)
+    plot!([center[1], line_right[1]], [center[2], line_right[2]], legend=false)
 
     plot!([line_middle[1]], [line_middle[2]], seriestype=:scatter, legend=false)
     plot!([line_left[1]], [line_left[2]], seriestype=:scatter, legend=false)
 
     plot!([obstacle[1]], [obstacle[2]], seriestype=:scatter, legend=false)
+
+end
+
+function run()
+    center = [5, 5]
+    v = 2
+    rot = 0.0
+
+    plot([center[1]], [center[2]], seriestype=:scatter, legend=false, xlims=(0,10), ylims=(0,10))
+
+    line_middle = end_line(center[1], center[2], v, rot)
+    # line_left = end_line(center[1], center[2], v, rot+1.2)
+
+    # lines = [line_middle, line_left]
+    # println(lines)
+    # for i in eachindex(lines)
+    #     println(lines[i])
+    # end
+    lines = Array{Float64}(undef, 7, 2)
+    for i = 1:size(lines, 1)
+        lines[i, :] = end_line(center[1], center[2], v, rot) 
+    end
+    println(lines)
 
 end
 

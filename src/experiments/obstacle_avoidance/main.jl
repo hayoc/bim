@@ -53,6 +53,38 @@ function collision(p, t1, t2, t3)
     return point_in_triangle(px, py, x1, y1, x2, y2, x3, y3)
 end
 
+function vision(obstacles, center, v, θ)
+    sectors = fill(false, 6)
+
+    min_distance = 10000000000
+    closest_distance = 10000000000
+    closest_obstacle = nothing
+    
+    lines = Array{Float64}(undef, 7, 2)
+    for i = 1:size(lines, 1)
+        lines[i, :] = end_line(center[1], center[2], v, θ + (1.2 - (i-1) * 0.4))
+        plot!([center[1], lines[i, 1]], [center[2], lines[i, 2]], legend=false)
+    end
+
+    for o in obstacles
+        if collision(o, center, lines[1, :], lines[4, :]) || collision(o, center, lines[4, :], lines[7, :])
+            d = hypot(o[1] - center[1], o[2] - center[2])
+            if d <= min_distance && d < closest_distance
+                closest_distance = d
+                closest_obstacle = o
+            end
+        end
+    end
+
+    if !isnothing(closest_obstacle)
+        for i in 1:size(lines, 1) - 1
+            sectors[i] = collision(closest_obstacle, center, lines[i, :], lines[i + 1, :])
+        end
+    end
+
+    return sectors
+end
+
 function run()
     obstacles = create_obstacles(500, 50)
     a_path, a_lines = create_agent(100, obstacles)
@@ -67,6 +99,21 @@ function run()
     display(plt)
 end
 
+function run1()
+    obstacle = [6.6, 5.4]
+    center = [5, 5]
+    v = 2 # velocity
+    θ = 0.0 # rotation
+
+    plt = plot([center[1]], [center[2]], seriestype=:scatter, legend=false, xlims=(0,10), ylims=(0,10))
+    plot!([obstacle[1]], [obstacle[2]], seriestype=:scatter, legend=false)
+    
+    sectors = vision([obstacle], center, v, θ)
+
+    print(sectors)
+    display(plt)
+end
 
 
-run()
+
+run1()
