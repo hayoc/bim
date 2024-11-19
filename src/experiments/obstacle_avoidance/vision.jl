@@ -1,7 +1,19 @@
 module Vision
 
 
-export get_sectors
+export get_sectors, clear_obstacles
+
+function clear_obstacles(x, y, obstacles)
+    collision_radius = 2
+
+    function is_collision(x, y, a, b, radius)
+        return sqrt((x - a)^2 + (y - b)^2) <= radius
+    end
+
+    filtered_obstacles = filter(o -> !is_collision(o[1], o[2], x, y, collision_radius), obstacles)
+
+    return filtered_obstacles
+end
 
 function end_line(x, y, v, θ)
     x_ = x + v * cos(θ)
@@ -36,12 +48,13 @@ function get_sectors(obstacles, center, v, θ)
     
     lines = Array{Float64}(undef, 7, 2)
     for i = 1:size(lines, 1)
-        lines[i, :] = end_line(center[1], center[2], v, θ + (1.2 - (i-1) * 0.4))
-        plot!([center[1], lines[i, 1]], [center[2], lines[i, 2]], legend=false)
+        lines[i, :] = end_line(center[1], center[2], v * 5, θ + (1.2 - (i-1) * 0.4))
+        # plot!([center[1], lines[i, 1]], [center[2], lines[i, 2]], legend=false)
     end
 
     for o in obstacles
         if collision(o, center, lines[1, :], lines[4, :]) || collision(o, center, lines[4, :], lines[7, :])
+            println("DEF A COLLISION")
             d = hypot(o[1] - center[1], o[2] - center[2])
             if d <= min_distance && d < closest_distance
                 closest_distance = d
@@ -56,7 +69,16 @@ function get_sectors(obstacles, center, v, θ)
         end
     end
 
-    return sectors
+    active_sector = findfirst(==(1), sectors)
+    if isnothing(active_sector)
+        return Dict(:ext_left=>[0.5, 0.5], :ext_right=>[0.5, 0.5])
+    elseif active_sector <= 3
+        println("collision left")
+        return Dict(:ext_left=>[0.9, 0.1], :ext_right=>[0.1, 0.9])
+    else
+        println("collision right")
+        return Dict(:ext_left=>[0.1, 0.9], :ext_right=>[0.9, 0.1])
+    end
 end
 
 end

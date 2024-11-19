@@ -7,7 +7,7 @@ using RxInfer
 using Plots
 using Random
 
-include("agent.jl")
+includet("agent.jl")
 using .Agent
 
 

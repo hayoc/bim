@@ -10,11 +10,9 @@ using Printf
 end
 
 # HYPOTHESIS UPDATE (given observation)
-function update()
-                                                            #  h_left      h_right
-    result = infer(model = complex_model_prediction(hypos = [[0.9, 0.1], [0.9, 0.1]]), 
-                    data = (ext_left = [1, 0], ext_right = [1, 0],
-                            pro_left = [1, 0], pro_right = [1, 0]))
+function update(hypotheses)
+    result = infer(model = complex_model_prediction(hypos = hypotheses), 
+                    data = (ext_left = [0.1, 0.9], pro_left = missing))
 
     return result
 end
@@ -28,29 +26,36 @@ function prediction()
     return result
 end
 
-@model function complex_model_prediction(hypos, ext_left, ext_right, pro_left, pro_right)
+@model function complex_model_prediction(hypos, ext_left, pro_left)
     #       H
     #    ___|___
     #   |       |
     #   E       P
 
     h_left ~ Categorical(hypos[1])
-    h_right ~ Categorical(hypos[2])
 
-    P_cpt = [0.9 0.1; 
-             0.1 0.9] 
-
+    # -> col wise e.g: [0.9, 0.0, 0.1; 
+    #                   0.5, 0.3, 0.2]
     E_cpt = [0.9 0.1; 
+             0.1 0.9] 
+    P_cpt = [0.9 0.1; 
              0.1 0.9] 
              
     ext_left ~ Transition(h_left, E_cpt)
-    ext_right ~ Transition(h_right, E_cpt)
     pro_left ~ Transition(h_left, P_cpt)
-    pro_right ~ Transition(h_right, P_cpt)
+
 end
 
-result = update()
+hypo1 = [[0.6, 0.4]]
+result = update(hypo1)
 
 for (k, v) in result.posteriors
     @printf("%s: %s\n", k, v.p)
 end
+
+# hypo2= [[0.5, 0.5]]
+# result = update(hypo2)
+
+# for (k, v) in result.posteriors
+#     @printf("%s: %s\n", k, v.p)
+# end
