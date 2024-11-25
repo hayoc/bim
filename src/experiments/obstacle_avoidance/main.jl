@@ -22,12 +22,13 @@ function run()
     println("===========================START=============================")
     println("=============================================================")
 
-    steps = 100
+    map_size = 60
+    steps = 400
     v = 0.5 # velocity
     θ = 0 # rotation
     a = Dict(:pro_left=>[0.5, 0.5], :pro_right=>[0.5, 0.5]) # proprioception
     h = [[0.5, 0.5], [0.5, 0.5]] # hypotheses
-    o = create_obstacles(60, 300)
+    o = create_obstacles(map_size, 300)
 
     original_o = o
     path = Array{Float64}(undef, steps, 2)
@@ -36,7 +37,7 @@ function run()
     for i = 2:steps
         @printf("------------------------%d------------------------\n", i)
         x, y = path[i-1, :]
-        x, y, θ, a, h = step(x, y, θ, v, a, h, o)
+        x, y, θ, a, h = step(x, y, θ, v, a, h, o, map_size)
         path[i, :] = [x, y]      
         #o = clear_obstacles(x, y, o) # Todo: add cleared obstacle to new list to track which ones were hit
     end
@@ -44,11 +45,11 @@ function run()
     return path, original_o
 end
 
-function step(x, y, θ, v, proprioception, hypotheses, obstacles)
+function step(x, y, θ, v, proprioception, hypotheses, obstacles, map_size)
     x_ = x + v * cos(θ)
     y_ = y + v * sin(θ)
 
-    exteroception = get_sectors(obstacles, [x_, y_], v, θ)
+    exteroception = get_sectors(obstacles, [x_, y_], v, θ, (map_size, map_size))
 
     hypotheses, proprioception, action = predictive_processing(hypotheses, exteroception, proprioception)
 
@@ -61,14 +62,12 @@ function act(θ, a)
     # TODO: maybe increase rotation based on prediction error size? This way we could more naturally
     # introduce random deviations during no turning behavior
     if haskey(a, :pro_left)
-        println("ROTATO LEFT")
         return rotate(θ, rand(VonMises(findmax(a[:pro_left])[2] == 1 ? -0.5 : 0.5, 100.0)))
     elseif haskey(a, :pro_right)
-        println("ROTATO RIGHT")
         return rotate(θ, rand(VonMises(findmax(a[:pro_right])[2] == 1 ? 0.5 : -0.5, 100.0)))
     else
-        println("NO ROTATO")
-        return rotate(θ, rand(VonMises(0.0, 1000.0)))
+        return θ
+        #return rotate(θ, rand(VonMises(0.0, 1000.0)))
     end
 end
 

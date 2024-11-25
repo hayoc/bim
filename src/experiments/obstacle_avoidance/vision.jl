@@ -1,5 +1,6 @@
 module Vision
 
+using Random
 
 export get_sectors, clear_obstacles
 
@@ -39,7 +40,7 @@ function collision(p, t1, t2, t3)
     return point_in_triangle(px, py, x1, y1, x2, y2, x3, y3)
 end
 
-function get_sectors(obstacles, center, v, θ)
+function get_sectors(obstacles, center, v, θ, boundaries)
     sectors = fill(false, 6)
 
     min_distance = 10000000000
@@ -54,7 +55,6 @@ function get_sectors(obstacles, center, v, θ)
 
     for o in obstacles
         if collision(o, center, lines[1, :], lines[4, :]) || collision(o, center, lines[4, :], lines[7, :])
-            println("DEF A COLLISION")
             d = hypot(o[1] - center[1], o[2] - center[2])
             if d <= min_distance && d < closest_distance
                 closest_distance = d
@@ -70,15 +70,42 @@ function get_sectors(obstacles, center, v, θ)
     end
 
     active_sector = findfirst(==(1), sectors)
-    if isnothing(active_sector)
-        return Dict(:ext_left=>[0.5, 0.5], :ext_right=>[0.5, 0.5])
-    elseif active_sector <= 3
-        println("collision left")
-        return Dict(:ext_left=>[0.9, 0.1], :ext_right=>[0.1, 0.9])
+    bnd = find_boundaries(lines, boundaries)
+    if bnd[1] == 1
+        if bnd[2] == 0
+            return Dict(:ext_left=>[0.9, 0.1], :ext_right=>[0.1, 0.9])
+        else
+            return Dict(:ext_left=>[0.9, 0.1], :ext_right=>[0.1, 0.9])
+        end
     else
-        println("collision right")
-        return Dict(:ext_left=>[0.1, 0.9], :ext_right=>[0.9, 0.1])
+        if isnothing(active_sector)
+            return Dict(:ext_left=>[0.5, 0.5], :ext_right=>[0.5, 0.5])
+        elseif active_sector <= 4
+            return Dict(:ext_left=>[0.9, 0.1], :ext_right=>[0.1, 0.9])
+        elseif active_sector >= 5
+            return Dict(:ext_left=>[0.1, 0.9], :ext_right=>[0.9, 0.1])
+        end
     end
+end
+
+function find_boundaries(lines, boundaries)
+    if crossed(lines[1, :], boundaries) || crossed(lines[2, :], boundaries) || crossed(lines[3,  :], boundaries)
+        return (1, 0)
+    elseif crossed(lines[5, :], boundaries) || crossed(lines[6, :], boundaries) || crossed(lines[7,  :], boundaries)
+        return (1, 1)
+    elseif crossed(lines[4, :], boundaries)
+        return (1, rand(0:1))
+    else
+        return (0, 0)
+    end
+end
+
+function crossed(line, boundaries)
+    if line[1] < 0 || line[1] > boundaries[1] || line[2] < 0 || line[2] > boundaries[2]
+        println("crossed boundaries")
+        return true
+    end
+    return false
 end
 
 end
