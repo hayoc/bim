@@ -33,7 +33,7 @@ function predictive_processing(hypotheses, exteroception, proprioception)
         error = observation - prediction
         error_size = kl_divergence(observation, prediction)
         
-        @printf("Node %s - prediction: %s vs observation: %s with error: %.2f\n", 
+        @printf("Node %s - prediction: %s vs observation: %s with error: %.3f\n", 
                 key, 
                 "["*join(round.(prediction, sigdigits=3),",")*"]", 
                 "["*join(round.(observation, sigdigits=3),",")*"]",
@@ -49,14 +49,17 @@ function predictive_processing(hypotheses, exteroception, proprioception)
 
     action = Dict()
     
-    if m_error_size > 0.
+    if m_error_size > 0.001
         if haskey(exteroception, m_error_name)
             result = infer(model = pp_model(hypos = hypotheses), 
                             data = (ext_left = m_error_name == :ext_left ? m_prediction + m_error : missing, 
                                     ext_right = m_error_name == :ext_right ? m_prediction + m_error : missing,
                                     pro_left = m_error_name == :pro_left ? m_prediction + m_error : missing, 
                                     pro_right = m_error_name == :pro_right ? m_prediction + m_error : missing))
-
+            # println(result)
+            # println(m_error_name)
+            # println(m_prediction)
+            # println(m_error)
             old_hypos = hypotheses
             hypotheses = [h.p for h in values(result.posteriors)]
             @printf("Hypo update - %s, %s ===> %s, %s\n", 
@@ -64,12 +67,23 @@ function predictive_processing(hypotheses, exteroception, proprioception)
                     print_vec(hypotheses[1]), print_vec(hypotheses[2]))
         elseif haskey(proprioception, m_error_name)
             @printf("Action update - %s ===> %s\n", m_error_name, print_vec(m_prediction))
-            proprioception[m_error_name] = m_prediction
-            action = Dict(m_error_name=>m_prediction)
+            #act_arr = pred_to_act(m_prediction)
+            act_arr = m_prediction
+
+            proprioception[m_error_name] = act_arr
+            action = Dict(m_error_name=>act_arr)
         end
     end
 
-    return hypotheses, proprioception, action
+    return hypotheses, action
+end
+
+function pred_to_act(pred)
+    if findmax(pred)[2] == 1
+        return [0.9, 0.1]
+    else
+        return [0.1, 0.9]
+    end
 end
 
 function print_vec(v)

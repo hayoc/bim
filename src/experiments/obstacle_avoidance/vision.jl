@@ -73,9 +73,11 @@ function get_sectors(obstacles, center, v, θ, boundaries)
     bnd = find_boundaries(lines, boundaries)
     if bnd[1] == 1
         if bnd[2] == 0
+            println("Bound left")
             return Dict(:ext_left=>[0.9, 0.1], :ext_right=>[0.1, 0.9])
         else
-            return Dict(:ext_left=>[0.9, 0.1], :ext_right=>[0.1, 0.9])
+            println("Bound right")
+            return Dict(:ext_left=>[0.1, 0.9], :ext_right=>[0.9, 0.1])
         end
     else
         if isnothing(active_sector)

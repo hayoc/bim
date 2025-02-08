@@ -19,6 +19,14 @@ end
 
 function run()
     hypotheses = [[0.5, 0.5], [0.5, 0.5]]
+
+
+    result = infer(model = pp_model(hypos = hypotheses), 
+    data = (ext_left = m_error_name == :ext_left ? m_prediction + m_error : missing, 
+            ext_right = m_error_name == :ext_right ? m_prediction + m_error : missing,
+            pro_left = m_error_name == :pro_left ? m_prediction + m_error : missing, 
+            pro_right = m_error_name == :pro_right ? m_prediction + m_error : missing))
+            
     result = infer(model = pp_model(hypos = hypotheses), 
     data = (ext_left = missing, ext_right = missing,
             pro_left = missing, pro_right = missing))

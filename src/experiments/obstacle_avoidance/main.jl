@@ -11,19 +11,16 @@ using .Vision
 using .PPModel
 
 
-#Random.seed!(421)
+Random.seed!(421)
 
 
 function run()
-    #TODO: basically why peepo always turned in circles is because there is no "neutral" setting qua observation
-    # If there is no obstacle in the vicinity, then still either left or right obs is activated
-    # solution would be to introduce a third observation (exteroception) node, ext_null
     println("=============================================================")
     println("===========================START=============================")
     println("=============================================================")
 
     map_size = 60
-    steps = 400
+    steps = 30
     v = 0.5 # velocity
     θ = 0 # rotation
     a = Dict(:pro_left=>[0.5, 0.5], :pro_right=>[0.5, 0.5]) # proprioception
@@ -51,9 +48,9 @@ function step(x, y, θ, v, proprioception, hypotheses, obstacles, map_size)
 
     exteroception = get_sectors(obstacles, [x_, y_], v, θ, (map_size, map_size))
 
-    hypotheses, proprioception, action = predictive_processing(hypotheses, exteroception, proprioception)
+    hypotheses, action = predictive_processing(hypotheses, exteroception, proprioception)
 
-    θ_ = act(θ, action)
+    θ_ , proprioception = act(θ, action)
 
     return x_, y_, θ_, proprioception, hypotheses
 end
@@ -62,11 +59,11 @@ function act(θ, a)
     # TODO: maybe increase rotation based on prediction error size? This way we could more naturally
     # introduce random deviations during no turning behavior
     if haskey(a, :pro_left)
-        return rotate(θ, rand(VonMises(findmax(a[:pro_left])[2] == 1 ? -0.5 : 0.5, 100.0)))
+        return rotate(θ, rand(VonMises(findmax(a[:pro_left])[2] == 1 ? -0.5 : 0.5, 100.0))), Dict(:pro_left=>[0.9, 0.1], :pro_right=>[0.5, 0.5])
     elseif haskey(a, :pro_right)
-        return rotate(θ, rand(VonMises(findmax(a[:pro_right])[2] == 1 ? 0.5 : -0.5, 100.0)))
+        return rotate(θ, rand(VonMises(findmax(a[:pro_right])[2] == 1 ? 0.5 : -0.5, 100.0))), Dict(:pro_left=>[0.5, 0.5], :pro_right=>[0.9, 0.1])
     else
-        return θ
+        return θ, Dict(:pro_left=>[0.5, 0.5], :pro_right=>[0.5, 0.5])
         #return rotate(θ, rand(VonMises(0.0, 1000.0)))
     end
 end
@@ -85,6 +82,9 @@ function execute()
     obstacles = reduce(hcat, obstacles)'
     plt = plot(obstacles[:, 1], obstacles[:, 2], seriestype=:scatter, markersize=2, legend=false)
     plt = plot(plt, path[:, 1], path[:, 2], label=false)
+    for i in 1:10:size(path, 1)
+        annotate!(path[i, 1], path[i, 2], text("$i", :left, 5))
+    end
     display(plt)
 end
 
