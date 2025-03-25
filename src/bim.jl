@@ -1,8 +1,8 @@
-module Bipom
+module Bim
 
 const base_dir = joinpath(@__DIR__, "experiments")
 
 includet(joinpath(base_dir, "path_integration", "main.jl"))
 
 
-end # module Bipom
+end # module Bim

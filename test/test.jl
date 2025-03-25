@@ -2,8 +2,8 @@ using Pkg
 
 Pkg.activate(joinpath(@__DIR__, ".."))
 
-includet(joinpath(@__DIR__, "..", "src", "Bipom.jl"))
+includet(joinpath(@__DIR__, "..", "src", "Bim.jl"))
 
-using .Bipom
+using .Bim
 
 PathIntegration.path_integration()
