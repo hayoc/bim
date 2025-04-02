@@ -2,11 +2,15 @@ module PPModel
 
 export predictive_processing
 
+using Revise
+
 using RxInfer
 using Distances
 using Printf
 
 
+include("../../utils/prettyprint.jl")
+using .PrettyPrint
 
 
 function predictive_processing(hypotheses, exteroception, proprioception)
@@ -17,7 +21,7 @@ function predictive_processing(hypotheses, exteroception, proprioception)
     result = infer(model = pp_model(hypos = hypotheses), 
                     data = (ext_left = missing, ext_right = missing,
                             pro_left = missing, pro_right = missing))
-    predictions = Dict(k => v.p for (k, v) in result.predictions)
+    predictions = sort([(k, v.p) for (k, v) in result.predictions], by = x -> x[1], rev = true)
 
     m_error_size = 0.
     m_error_name = ""
@@ -49,17 +53,13 @@ function predictive_processing(hypotheses, exteroception, proprioception)
 
     action = Dict()
     
-    if m_error_size > 0.001
+    if m_error_size > 0.05
         if haskey(exteroception, m_error_name)
             result = infer(model = pp_model(hypos = hypotheses), 
                             data = (ext_left = m_error_name == :ext_left ? m_prediction + m_error : missing, 
                                     ext_right = m_error_name == :ext_right ? m_prediction + m_error : missing,
                                     pro_left = m_error_name == :pro_left ? m_prediction + m_error : missing, 
                                     pro_right = m_error_name == :pro_right ? m_prediction + m_error : missing))
-            # println(result)
-            # println(m_error_name)
-            # println(m_prediction)
-            # println(m_error)
             old_hypos = hypotheses
             hypotheses = [h.p for h in values(result.posteriors)]
             @printf("Hypo update - %s, %s ===> %s, %s\n", 
@@ -67,7 +67,6 @@ function predictive_processing(hypotheses, exteroception, proprioception)
                     print_vec(hypotheses[1]), print_vec(hypotheses[2]))
         elseif haskey(proprioception, m_error_name)
             @printf("Action update - %s ===> %s\n", m_error_name, print_vec(m_prediction))
-            #act_arr = pred_to_act(m_prediction)
             act_arr = m_prediction
 
             proprioception[m_error_name] = act_arr
@@ -76,18 +75,6 @@ function predictive_processing(hypotheses, exteroception, proprioception)
     end
 
     return hypotheses, action
-end
-
-function pred_to_act(pred)
-    if findmax(pred)[2] == 1
-        return [0.9, 0.1]
-    else
-        return [0.1, 0.9]
-    end
-end
-
-function print_vec(v)
-    return "["*join(round.(v, sigdigits=3),",")*"]"
 end
 
 function observe(name, ext, pro) 
@@ -109,10 +96,10 @@ end
     E_cpt = [0.9 0.1; 
              0.1 0.9] 
              
-    ext_left ~ Transition(h_left, E_cpt)
-    ext_right ~ Transition(h_right, E_cpt)
-    pro_left ~ Transition(h_left, P_cpt)
-    pro_right ~ Transition(h_right, P_cpt)
+    ext_left ~ DiscreteTransition(h_left, E_cpt)
+    ext_right ~ DiscreteTransition(h_right, E_cpt)
+    pro_left ~ DiscreteTransition(h_left, P_cpt)
+    pro_right ~ DiscreteTransition(h_right, P_cpt)
 end
 
-end # Module PPModel
+end # module PPModel

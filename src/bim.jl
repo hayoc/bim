@@ -1,8 +1,7 @@
-module Bim
+using Revise
 
-const base_dir = joinpath(@__DIR__, "experiments")
+const experiments_dir = joinpath(@__DIR__, "experiments")
 
-includet(joinpath(base_dir, "path_integration", "main.jl"))
+includet(joinpath(experiments_dir, "obstacle_avoidance", "agent.jl"))
 
-
-end # module Bim
+run_experiment()

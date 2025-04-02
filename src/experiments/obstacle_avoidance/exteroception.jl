@@ -1,19 +1,68 @@
-module Vision
+module Exteroception
 
 using Random
+using Plots
+using Printf
 
-export get_sectors, clear_obstacles
+export get_sectors
 
-function clear_obstacles(x, y, obstacles)
-    collision_radius = 2
+function get_sectors(obstacles, center, v, θ, boundaries)
+    sectors = fill(false, 6)
 
-    function is_collision(x, y, a, b, radius)
-        return sqrt((x - a)^2 + (y - b)^2) <= radius
+    min_distance = 10000000000
+    closest_distance = 10000000000
+    closest_obstacle = nothing
+
+    lines = Array{Float64}(undef, 7, 2)
+    for i = 1:size(lines, 1)
+        lines[i, :] = end_line(center[1], center[2], v * 4, θ + (1.2 - (i-1) * 0.4))
     end
 
-    filtered_obstacles = filter(o -> !is_collision(o[1], o[2], x, y, collision_radius), obstacles)
+    for o in obstacles
+        col_left = collision(o, center, lines[1, :], lines[4, :])
+        col_right = collision(o, center, lines[4, :], lines[7, :])
+        if col_left || col_right
+            d = hypot(o[1] - center[1], o[2] - center[2])
+            if d <= min_distance && d < closest_distance
+                closest_distance = d
+                closest_obstacle = o
+            end
+        end
+    end
 
-    return filtered_obstacles
+    #println("closest_obstacle ", closest_obstacle)
+
+    if !isnothing(closest_obstacle)
+        for i in 1:size(lines, 1) - 1
+            sectors[i] = collision(closest_obstacle, center, lines[i, :], lines[i + 1, :])
+        end
+    end
+
+    active_sector = findfirst(==(1), sectors)
+    bnd = find_boundaries(lines, boundaries)
+
+    # to handle boundaries properly:
+    # right now when outside boundary it will always only see one side
+    # e.g. bound left bc that's the first one handled
+    # instead should do something like whichever side is closest to the boundary
+    # that side should move
+    if bnd[1] == 1
+        if bnd[2] == 0
+            @printf("Bound left: %fθ\n", θ)
+            return Dict(:ext_left=>[0.1, 0.9], :ext_right=>[0.9, 0.1])
+        else
+            @printf("Bound right: %fθ\n", θ)
+            return Dict(:ext_left=>[0.9, 0.1], :ext_right=>[0.1, 0.9])
+        end
+    else
+        if isnothing(active_sector)
+            return Dict(:ext_left=>[0.9, 0.1], :ext_right=>[0.9, 0.1])
+        elseif active_sector <= 4
+            return Dict(:ext_left=>[0.1, 0.9], :ext_right=>[0.9, 0.1])
+        elseif active_sector >= 5
+            return Dict(:ext_left=>[0.9, 0.1], :ext_right=>[0.1, 0.9])
+        end
+    end
 end
 
 function end_line(x, y, v, θ)
@@ -40,56 +89,6 @@ function collision(p, t1, t2, t3)
     return point_in_triangle(px, py, x1, y1, x2, y2, x3, y3)
 end
 
-function get_sectors(obstacles, center, v, θ, boundaries)
-    sectors = fill(false, 6)
-
-    min_distance = 10000000000
-    closest_distance = 10000000000
-    closest_obstacle = nothing
-    
-    lines = Array{Float64}(undef, 7, 2)
-    for i = 1:size(lines, 1)
-        lines[i, :] = end_line(center[1], center[2], v * 5, θ + (1.2 - (i-1) * 0.4))
-        # plot!([center[1], lines[i, 1]], [center[2], lines[i, 2]], legend=false)
-    end
-
-    for o in obstacles
-        if collision(o, center, lines[1, :], lines[4, :]) || collision(o, center, lines[4, :], lines[7, :])
-            d = hypot(o[1] - center[1], o[2] - center[2])
-            if d <= min_distance && d < closest_distance
-                closest_distance = d
-                closest_obstacle = o
-            end
-        end
-    end
-
-    if !isnothing(closest_obstacle)
-        for i in 1:size(lines, 1) - 1
-            sectors[i] = collision(closest_obstacle, center, lines[i, :], lines[i + 1, :])
-        end
-    end
-
-    active_sector = findfirst(==(1), sectors)
-    bnd = find_boundaries(lines, boundaries)
-    if bnd[1] == 1
-        if bnd[2] == 0
-            println("Bound left")
-            return Dict(:ext_left=>[0.9, 0.1], :ext_right=>[0.1, 0.9])
-        else
-            println("Bound right")
-            return Dict(:ext_left=>[0.1, 0.9], :ext_right=>[0.9, 0.1])
-        end
-    else
-        if isnothing(active_sector)
-            return Dict(:ext_left=>[0.5, 0.5], :ext_right=>[0.5, 0.5])
-        elseif active_sector <= 4
-            return Dict(:ext_left=>[0.9, 0.1], :ext_right=>[0.1, 0.9])
-        elseif active_sector >= 5
-            return Dict(:ext_left=>[0.1, 0.9], :ext_right=>[0.9, 0.1])
-        end
-    end
-end
-
 function find_boundaries(lines, boundaries)
     if crossed(lines[1, :], boundaries) || crossed(lines[2, :], boundaries) || crossed(lines[3,  :], boundaries)
         return (1, 0)
@@ -104,10 +103,10 @@ end
 
 function crossed(line, boundaries)
     if line[1] < 0 || line[1] > boundaries[1] || line[2] < 0 || line[2] > boundaries[2]
-        println("crossed boundaries")
+        @printf("crossed boundaries - %s\n", line)
         return true
     end
     return false
 end
 
-end
+end # module Exteroception
