@@ -55,8 +55,7 @@ function predictive_processing(hypotheses, exteroception, proprioception)
                                     pro_right = m_error_name == :pro_right ? m_prediction + m_error : missing))
             old_hypos = hypotheses
             hypotheses = [h.p for h in values(result.posteriors)]
-            @debug "Hypo update: $(print_vec(old_hypos[1])), $(print_vec(old_hypos[2])) 
-                ===> $(print_vec(hypotheses[1])), $(print_vec(hypotheses[2]))"
+            @debug "Hypo update: $(print_vec(old_hypos[1])), $(print_vec(old_hypos[2])) ===> $(print_vec(hypotheses[1])), $(print_vec(hypotheses[2]))"
         elseif haskey(proprioception, m_error_name)
             @debug "Action update: $(m_error_name) ===> $(print_vec(m_prediction))"
             act_arr = m_prediction

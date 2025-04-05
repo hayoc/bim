@@ -1,38 +1,28 @@
-using RxInfer
-using Printf
-
-
-@model function pp_model(hypos, ext_left, ext_right, pro_left, pro_right)
-    h_left ~ Categorical(hypos[1])
-    h_right ~ Categorical(hypos[2])
-
-    P_cpt = [0.9 0.1; 
-             0.1 0.9] 
-    E_cpt = [0.9 0.1; 
-             0.1 0.9] 
-             
-    ext_left ~ Transition(h_left, E_cpt)
-    ext_right ~ Transition(h_right, E_cpt)
-    pro_left ~ Transition(h_left, P_cpt)
-    pro_right ~ Transition(h_right, P_cpt)
-end
+using Plots
+function V(x)
+    return x^2
+end    
 
 function run()
-    hypotheses = [[0.5, 0.5], [0.5, 0.5]]
+    tx = -1:0.02:+1
+    x = [-1. -1. -1.] #Starting positions
+    δt = 0.05
+    anim = Animation()
+    tEnd = 2π; 
+    t = 0; 
+    vb = [-1,+1];
 
-
-    result = infer(model = pp_model(hypos = hypotheses), 
-    data = (ext_left = m_error_name == :ext_left ? m_prediction + m_error : missing, 
-            ext_right = m_error_name == :ext_right ? m_prediction + m_error : missing,
-            pro_left = m_error_name == :pro_left ? m_prediction + m_error : missing, 
-            pro_right = m_error_name == :pro_right ? m_prediction + m_error : missing))
-            
-    result = infer(model = pp_model(hypos = hypotheses), 
-    data = (ext_left = missing, ext_right = missing,
-            pro_left = missing, pro_right = missing))
-    predictions = Dict(k => v.p for (k, v) in result.predictions)
-
-    println(predictions)
+    while t < tEnd
+        x[3] = 2x[2] - x[1] -x[2]*δt^2
+        plot(tx,V.(tx),legend=:none)
+        scatter!([x[2]] ,[V(x[2])],xlim=vb,ylim=vb,legend=:none,ticks=:false
+            ,markersize=3,frame=:box,dpi=150,aspectratio=1,markerstrokecolor="blue",
+            markercolor="blue")
+        x[2],x[1] = x[3],x[2]
+        t += δt
+        frame(anim)
+    end
+    gif(anim)
 end
 
 run()

@@ -2,6 +2,7 @@ using Revise
 
 using Random
 using Plots
+using LinearAlgebra
 
 includet("exteroception.jl")
 using .Exteroception
@@ -9,16 +10,20 @@ includet("proprioception.jl")
 using .Proprioception
 includet("model.jl")
 using .PPModel
+includet("../../utils/plane.jl")
+using .Plane
 
 
-Random.seed!(420)
-plotlyjs()
+
 
 
 function run_experiment()
+    Random.seed!(420)
+    plotlyjs()
+
     map_size = 60
-    steps = 500
-    num_obstacles = 400
+    steps = 200
+    num_obstacles = 100
     start_pos = [map_size / 2, map_size / 2]
     v = 0.5 # velocity
     θ = 0 # rotation
@@ -26,21 +31,25 @@ function run_experiment()
     h = [[0.5, 0.5], [0.5, 0.5]] # hypotheses
     o = create_obstacles(map_size, num_obstacles)
 
-    original_o = o
+    # todo julia prefer col vs rows 
     path = Array{Float64}(undef, steps, 2)
     path[1, :] = start_pos
     thetas = Array{Float64}(undef, steps, 1)
     thetas[1] = θ
-    
+    # todo: whole obstacles thing should be matrix
+    o_history = []
+    push!(o_history, o)
     for i = 2:steps
         @debug "------------------------$(i)------------------------"
         x, y = path[i-1, :]
         x, y, θ, a, h = step(x, y, θ, v, a, h, o, map_size)
+        o = clear_obstacles(o, x, y)
         path[i, :] = [x, y]  
-        thetas[i] = θ    
+        thetas[i] = θ
+        push!(o_history, o)
     end
 
-    plot_results(path, original_o, thetas)
+    plot_results(path, o_history, thetas)
 end
 
 function step(x, y, θ, v, proprioception, hypotheses, obstacles, map_size)
@@ -56,17 +65,31 @@ function step(x, y, θ, v, proprioception, hypotheses, obstacles, map_size)
     return x_, y_, θ_, proprioception, hypotheses
 end
 
+function clear_obstacles(obstacles, x, y)
+    indices = [i for i in eachindex(obstacles) if rect_collision(obstacles[i], x, y)]
+    return deleteat!(copy(obstacles), indices)
+end
+
 function create_obstacles(map_size::Int64, number_obstacles::Int64)
     obstacles = [rand(1:map_size, 2) for _ in 1:number_obstacles]
     return obstacles
 end
 
-function plot_results(path, obstacles, thetas)
-    obstacles = reduce(hcat, obstacles)'
-    plt = plot(obstacles[:, 1], obstacles[:, 2], seriestype=:scatter, markersize=2, legend=false)
-    plt = plot(plt, path[:, 1], path[:, 2], linestyle=:solid, label=false)
+function plot_results(path, o_history, thetas)
+    # Gif
+    # @gif for i in axes(path, 1)
+    #     p = path[1:i, :]
+    #     o = reduce(hcat, o_history[i])'
 
-    #plt = plot(plt, path[:, 1], path[:, 2], linestyle=:solid, markershape=:circle, markersize=2, label=false)
+    #     plt = scatter(o[:, 1], o[:, 2], markersize=1, color=:blue, legend=false)
+    #     plt = scatter(plt, p[1:i, 1], p[1:i, 2], markersize=2, color=:red, legend=false)
+    # end every 10
+    #  2.688790 seconds (1.02 M allocations: 147.580 MiB, 4.01% gc time)
+
+    # Static
+    obstacles = reduce(hcat, o_history[1])'
+    plt = plot(obstacles[:, 1], obstacles[:, 2], seriestype=:scatter, markersize=1, legend=false)
+    plt = plot(plt, path[:, 1], path[:, 2], linestyle=:solid, label=false)
 
     # Plot edge lines
     # for i in eachindex(thetas)
@@ -76,7 +99,7 @@ function plot_results(path, obstacles, thetas)
     #     plot!(plt, [path[i, 1], l_right[1]], [path[i, 2], l_right[2]], color=:green)
     # end
     
-    # Plot numbers onn path
+    # Plot numbers on path
     # for i in 1:1:size(path, 1)
     #     annotate!(path[i, 1], path[i, 2], text("$i", :left, 5))
     # end
@@ -85,6 +108,6 @@ function plot_results(path, obstacles, thetas)
     # for i in 1:1:size(obstacles, 1)
     #     annotate!(obstacles[i, 1], obstacles[i, 2], text("$i", :left, 5))
     # end
-
     display(plt)
+
 end
