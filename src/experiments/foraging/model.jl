@@ -22,10 +22,9 @@ function predictive_processing(hypotheses, exteroception, proprioception)
                             pro_left = missing, pro_right = missing))
     predictions = sort([(k, v.p) for (k, v) in result.predictions], by = x -> x[1], rev = true)
 
-    m_error_size = 0.
-    m_error_name = ""
-    m_error = [0., 0.]
-    m_prediction = [0., 0.]
+    error_names = []
+    errors = []
+    preds = []
 
     @debug "Hypotheses: $(print_vec(hypotheses[1])), $(print_vec(hypotheses[2]))"
 
@@ -36,35 +35,36 @@ function predictive_processing(hypotheses, exteroception, proprioception)
         
         @debug "Node $(key) - prediction: $(print_vec(prediction)) vs observation: $(print_vec(observation)) with error: $(round(error_size, digits=3))"
 
-        if error_size >= m_error_size
-            m_error_size = error_size
-            m_error_name = key
-            m_error = error
-            m_prediction = prediction
+        if error_size > 0.05
+            push!(errors, error)
+            push!(error_names, key)
+            push!(preds, prediction)
         end
     end
 
     action = Dict()
-    
-    if m_error_size > 0.05
-        if haskey(exteroception, m_error_name)
-            result = infer(model = pp_model(hypos = hypotheses), 
-                            data = (ext_left = m_error_name == :ext_left ? m_prediction + m_error : missing, 
-                                    ext_right = m_error_name == :ext_right ? m_prediction + m_error : missing,
-                                    pro_left = m_error_name == :pro_left ? m_prediction + m_error : missing, 
-                                    pro_right = m_error_name == :pro_right ? m_prediction + m_error : missing))
-            old_hypos = hypotheses
-            hypotheses = [h.p for h in values(result.posteriors)]
-            @debug "Hypo update: $(print_vec(old_hypos[1])), $(print_vec(old_hypos[2])) ===> $(print_vec(hypotheses[1])), $(print_vec(hypotheses[2]))"
-        elseif haskey(proprioception, m_error_name)
-            @debug "Action update: $(m_error_name) ===> $(print_vec(m_prediction))"
-            act_arr = m_prediction
 
-            proprioception[m_error_name] = act_arr
-            action = Dict(m_error_name=>act_arr)
+    for i in eachindex(error_names)
+        name = error_names[i]
+        e = errors[i]
+        p = preds[i]
+
+        if haskey(exteroception, name)
+            result = infer(model = pp_model(hypos = hypotheses), 
+            data = (ext_left = name == :ext_left ? p + e : missing, 
+                    ext_right = name == :ext_right ? p + e : missing,
+                    pro_left = name == :pro_left ? p + e : missing, 
+                    pro_right = name == :pro_right ? p + e : missing))
+            hypotheses = [h.p for h in values(result.posteriors)]
+            old_hypos = hypotheses
+            @debug "Hypo update: $(print_vec(old_hypos[1])), $(print_vec(old_hypos[2])) ===> $(print_vec(hypotheses[1])), $(print_vec(hypotheses[2]))"
+        elseif haskey(proprioception, name)
+            proprioception[name] = p
+            action[name] = p
+            @debug "Action update: $(name) ===> $(print_vec(p))"
         end
     end
-
+    
     return hypotheses, action
 end
 
@@ -86,11 +86,11 @@ end
              0.1 0.9] 
     E_cpt = [0.9 0.1; 
              0.1 0.9] 
-             
+
     ext_left ~ DiscreteTransition(h_left, E_cpt)
     ext_right ~ DiscreteTransition(h_right, E_cpt)
-    pro_left ~ DiscreteTransition(h_left, P_cpt)
-    pro_right ~ DiscreteTransition(h_right, P_cpt)
+    pro_left ~ DiscreteTransition(h_right, P_cpt)
+    pro_right ~ DiscreteTransition(h_left, P_cpt)
 end
 
 end # module PPModel

@@ -10,18 +10,17 @@ using Printf
 end
 
 # HYPOTHESIS UPDATE (given observation)
-function update()
-                                                            #  h_left      h_right
-    result = infer(model = complex_model_prediction(hypos = [[0.9, 0.1], [0.9, 0.1]]), 
-                    data = (ext_left = [1, 0], ext_right = [1, 0],
-                            pro_left = [1, 0], pro_right = [1, 0]))
+function update(hypos)
+    result = infer(model = complex_model_prediction(hypos = hypos), 
+                    data = (ext_left = missing, ext_right = [0, 1],
+                            pro_left = missing, pro_right = missing))
 
     return result
 end
 
 # OBSERVATION prediction (given hypotheses)
-function prediction()
-    result = infer(model = complex_model_prediction(hypos = [[1, 0], [1, 0]]), 
+function prediction(hypos)
+    result = infer(model = complex_model_prediction(hypos = hypos), 
                     data = (ext_left = missing, ext_right = missing,
                             pro_left = missing, pro_right = missing))
 
@@ -39,18 +38,49 @@ end
 
     P_cpt = [0.9 0.1; 
              0.1 0.9] 
-
     E_cpt = [0.9 0.1; 
              0.1 0.9] 
+
              
-    ext_left ~ Transition(h_left, E_cpt)
-    ext_right ~ Transition(h_right, E_cpt)
-    pro_left ~ Transition(h_left, P_cpt)
-    pro_right ~ Transition(h_right, P_cpt)
+    ext_left ~ DiscreteTransition(h_left, E_cpt)
+    ext_right ~ DiscreteTransition(h_right, E_cpt)
+    pro_left ~ DiscreteTransition(h_right, P_cpt)
+    pro_right ~ DiscreteTransition(h_left, P_cpt)
 end
 
-result = update()
 
-for (k, v) in result.posteriors
-    @printf("%s: %s\n", k, v.p)
+println("----------------1-------------------")
+hypos = [[0.1, 0.9], [0.9, 0.1]]
+
+preds = prediction(hypos)
+for (k, v) in preds.predictions
+    @printf("%s: %s\n", k, round.(v.p, digits=3))
 end
+
+
+# result = update(hypos)
+# for (k, v) in result.posteriors
+#     @printf("%s: %s\n", k, round.(v.p, digits=3))
+# end
+
+# println("---------------2--------------------")
+# hypos = [v.p for (k, v) in result.posteriors]
+# preds = prediction(hypos)
+# for (k, v) in preds.predictions
+#     @printf("%s: %s\n", k, round.(v.p, digits=3))
+# end
+# result = update(hypos)
+# for (k, v) in result.posteriors
+#     @printf("%s: %s\n", k, round.(v.p, digits=3))
+# end
+
+# println("----------------3-------------------")
+# hypos = [v.p for (k, v) in result.posteriors]
+# preds = prediction(hypos)
+# for (k, v) in preds.predictions
+#     @printf("%s: %s\n", k, round.(v.p, digits=3))
+# end
+# result = update(hypos)
+# for (k, v) in result.posteriors
+#     @printf("%s: %s\n", k, round.(v.p, digits=3))
+# end

@@ -15,7 +15,7 @@ function get_sectors(obstacles, center, v, θ, boundaries)
 
     lines = Array{Float64}(undef, 7, 2)
     for i = 1:size(lines, 1)
-        lines[i, :] = end_line(center[1], center[2], v * 5, θ + (1.2 - (i-1) * 0.4))
+        lines[i, :] = end_line(center[1], center[2], 2.5, θ + (1.2 - (i-1) * 0.4))
     end
 
     for o in obstacles
@@ -46,9 +46,9 @@ function get_sectors(obstacles, center, v, θ, boundaries)
     # that side should move
     if bnd[1] == 1
         if bnd[2] == 0
-            return Dict(:ext_left=>[0.1, 0.9], :ext_right=>[0.9, 0.1])
-        else
             return Dict(:ext_left=>[0.9, 0.1], :ext_right=>[0.1, 0.9])
+        else
+            return Dict(:ext_left=>[0.1, 0.9], :ext_right=>[0.9, 0.1])
         end
     else
         if isnothing(active_sector)

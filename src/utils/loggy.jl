@@ -18,7 +18,7 @@ function init_loggy()
         #print(io, " [", args.file, ":", args.line, "] ")
         println(io, args.message)
     end
-    logger = LevelOverrideLogger(Logging.Debug, logger) 
+    logger = LevelOverrideLogger(Logging.Info, logger) 
     global_logger(logger)
 end
 

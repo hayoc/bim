@@ -3,6 +3,7 @@ using Revise
 using Random
 using Plots
 using LinearAlgebra
+using Printf
 
 includet("exteroception.jl")
 using .Exteroception
@@ -22,13 +23,13 @@ function run_experiment()
     plotlyjs()
 
     map_size = 60
-    steps = 200
-    num_obstacles = 100
+    steps = 5000
+    num_obstacles = 50
     start_pos = [map_size / 2, map_size / 2]
-    v = 0.5 # velocity
+    v = 0.2 # velocity
     θ = 0 # rotation
-    a = Dict(:pro_left=>[0.5, 0.5], :pro_right=>[0.5, 0.5]) # proprioception
-    h = [[0.5, 0.5], [0.5, 0.5]] # hypotheses
+    a = Dict(:pro_left=>[0.9, 0.1], :pro_right=>[0.9, 0.1]) # proprioception
+    h = [[0.9, 0.1], [0.9, 0.1]] # hypotheses
     o = create_obstacles(map_size, num_obstacles)
 
     # todo julia prefer col vs rows 
@@ -76,21 +77,26 @@ function create_obstacles(map_size::Int64, number_obstacles::Int64)
 end
 
 function plot_results(path, o_history, thetas)
+    # @printf("Start obs: %s", length(first(o_history)))
+    # @printf("End obs: %s", length(last(o_history)))
+    
     # Gif
-    # @gif for i in axes(path, 1)
-    #     p = path[1:i, :]
-    #     o = reduce(hcat, o_history[i])'
+    # @time begin
+    #     @gif for i in axes(path, 1)
+    #         p = path[1:i, :]
+    #         o = reduce(hcat, o_history[i])'
 
-    #     plt = scatter(o[:, 1], o[:, 2], markersize=1, color=:blue, legend=false)
-    #     plt = scatter(plt, p[1:i, 1], p[1:i, 2], markersize=2, color=:red, legend=false)
-    # end every 10
-    #  2.688790 seconds (1.02 M allocations: 147.580 MiB, 4.01% gc time)
+    #         plt = scatter(o[:, 1], o[:, 2], markersize=1, color=:blue, legend=false, axis=([], false)
+    #         plt = scatter(plt, p[1:i, 1], p[1:i, 2], markersize=2, color=:red, legend=false)
+    #     end every 10
+    # end
 
     # Static
     obstacles = reduce(hcat, o_history[1])'
-    plt = plot(obstacles[:, 1], obstacles[:, 2], seriestype=:scatter, markersize=1, legend=false)
+    plt = plot(obstacles[:, 1], obstacles[:, 2], seriestype=:scatter, markersize=1, legend=false, axis=([], false))
     plt = plot(plt, path[:, 1], path[:, 2], linestyle=:solid, label=false)
-
+    display(plt)
+    
     # Plot edge lines
     # for i in eachindex(thetas)
     #     l_left = end_line(path[i, 1], path[i, 2], 2.0, thetas[i]-1.2)
@@ -108,6 +114,5 @@ function plot_results(path, o_history, thetas)
     # for i in 1:1:size(obstacles, 1)
     #     annotate!(obstacles[i, 1], obstacles[i, 2], text("$i", :left, 5))
     # end
-    display(plt)
 
 end
