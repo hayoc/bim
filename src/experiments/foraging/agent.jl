@@ -23,7 +23,7 @@ function run_experiment()
     plotlyjs()
 
     map_size = 60
-    steps = 5000
+    steps = 100
     num_obstacles = 50
     start_pos = [map_size / 2, map_size / 2]
     v = 0.2 # velocity
@@ -76,43 +76,46 @@ function create_obstacles(map_size::Int64, number_obstacles::Int64)
     return obstacles
 end
 
-function plot_results(path, o_history, thetas)
-    # @printf("Start obs: %s", length(first(o_history)))
-    # @printf("End obs: %s", length(last(o_history)))
+function plot_debug(plt, path, o_history, thetas; plot_edges=true, plot_path_num=true, plot_obs_num=true)
+    if plot_edges
+        for i in eachindex(thetas)
+            l_left = end_line(path[i, 1], path[i, 2], 2.0, thetas[i]-1.2)
+            l_right = end_line(path[i, 1], path[i, 2], 2.0, thetas[i]+1.2)
+            plot!(plt, [path[i, 1], l_left[1]], [path[i, 2], l_left[2]], color=:red)
+            plot!(plt, [path[i, 1], l_right[1]], [path[i, 2], l_right[2]], color=:green)
+        end
+    end
     
-    # Gif
-    # @time begin
-    #     @gif for i in axes(path, 1)
-    #         p = path[1:i, :]
-    #         o = reduce(hcat, o_history[i])'
+    if plot_path_num
+        for i in 1:1:size(path, 1)
+            annotate!(plt, path[i, 1], path[i, 2], text("$i", :left, 5))
+        end
+    end
 
-    #         plt = scatter(o[:, 1], o[:, 2], markersize=1, color=:blue, legend=false, axis=([], false)
-    #         plt = scatter(plt, p[1:i, 1], p[1:i, 2], markersize=2, color=:red, legend=false)
-    #     end every 10
-    # end
+    if plot_obs_num
+        obstacles = reduce(hcat, o_history[1])'
+        for i in 1:1:size(obstacles, 1)
+            annotate!(plt, obstacles[i, 1], obstacles[i, 2], text("$i", :left, 5))
+        end
+    end
+end
 
-    # Static
+function plot_gif(path, o_history)
+    @time begin
+        @gif for i in axes(path, 1)
+            p = path[1:i, :]
+            o = reduce(hcat, o_history[i])'
+            plt = scatter(o[:, 1], o[:, 2], markersize=1, color=:blue, legend=false, axis=([], false))
+            plt = scatter(plt, p[1:i, 1], p[1:i, 2], markersize=2, color=:red, legend=false)
+        end every 10
+    end
+end
+
+function plot_results(path, o_history, thetas)
     obstacles = reduce(hcat, o_history[1])'
     plt = plot(obstacles[:, 1], obstacles[:, 2], seriestype=:scatter, markersize=1, legend=false, axis=([], false))
     plt = plot(plt, path[:, 1], path[:, 2], linestyle=:solid, label=false)
+    #plot_debug(plt, path, o_history, thetas, plot_edges=true, plot_path_num=true, plot_obs_num=true)
     display(plt)
-    
-    # Plot edge lines
-    # for i in eachindex(thetas)
-    #     l_left = end_line(path[i, 1], path[i, 2], 2.0, thetas[i]-1.2)
-    #     l_right = end_line(path[i, 1], path[i, 2], 2.0, thetas[i]+1.2)
-    #     plot!(plt, [path[i, 1], l_left[1]], [path[i, 2], l_left[2]], color=:red)
-    #     plot!(plt, [path[i, 1], l_right[1]], [path[i, 2], l_right[2]], color=:green)
-    # end
-    
-    # Plot numbers on path
-    # for i in 1:1:size(path, 1)
-    #     annotate!(path[i, 1], path[i, 2], text("$i", :left, 5))
-    # end
-
-    # Plot numbers on obstacles
-    # for i in 1:1:size(obstacles, 1)
-    #     annotate!(obstacles[i, 1], obstacles[i, 2], text("$i", :left, 5))
-    # end
-
+    #plot_gif(path, o_history)
 end
