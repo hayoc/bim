@@ -21,11 +21,12 @@ function run_experiment()
     gr()
 
     vm = VonMises(0.0, 100.0)
-    left_vm = VonMises(deg2rad(-25.0), 100.0)
-    right_vm = VonMises(deg2rad(25.0), 100.0)
+    straight_vm = VonMises(0.0, 1000.0)
+    left_vm = VonMises(deg2rad(-15.0), 100.0)
+    right_vm = VonMises(deg2rad(15.0), 100.0)
 
-    steps = 1000
-    homing_start = Int(steps / 2)
+    steps = 20000
+    homing_start = div(steps, 3)
     path = zeros(steps, 2)
     
     ext = Dict() # exteroception
@@ -58,7 +59,7 @@ function run_experiment()
             homing_h[:memory] = memory_to_prior(memory)
             _, a = predictive_processing(homing_h, ext, homing_pro, true)
 
-            θ, v, path[i, :] = homing_walk(θ, v, path[i-1, :], a, left_vm, right_vm)
+            θ, v, path[i, :] = homing_walk(θ, v, path[i-1, :], a, left_vm, right_vm, straight_vm)
         else
             θ, v, path[i, :] = random_walk(θ, v, path[i-1, :], vm)
         end
@@ -72,15 +73,23 @@ function run_experiment()
     θ_hat = direction_to_heading(memory)
     dx, dy = sin(θ_hat), cos(θ_hat)
 
-    plt_memory_1 = bar(directions, [memory_halfway[d] for d in directions], label="memory", xlabel="direction", ylabel="memory (walk)", title="", legend=false)
-    plt_memory_2 = bar(directions, [memory[d] for d in directions], label="memory", xlabel="direction", ylabel="memory (homing)", title="", legend=false)
+    plt_memory_1 = bar(directions, [memory_halfway[d] for d in directions], ylims=(0.0, 1.0),  label="memory", xlabel="direction", ylabel="memory (outbound)", title="", legend=false)
+    plt_memory_2 = bar(directions, [memory[d] for d in directions], ylims=(0.0, 1.0), label="memory", xlabel="direction", ylabel="memory (homing)", title="", legend=false)
+    hline!(plt_memory_1, [0.5], color=:red, linestyle=:dash, linewidth=2)
+    hline!(plt_memory_2, [0.5], color=:red, linestyle=:dash, linewidth=2)
 
-    plt_path = plot(path[:, 1], path[:, 2], axis=([], false), legend=false)
-    scatter!(plt_path, [path[1, 1]], [path[1, 2]], marker=(:circle, 4, :red))
-    scatter!(plt_path, [path[homing_start, 1]], [path[homing_start, 2]], marker=(:diamond, 4, :purple))
-    quiver!(plt_path, [path[end, 1]], [path[end, 2]], quiver=([dx*steps/10], [dy*steps/10]), arrow=:closed, color=:orange, linewidth=2)
+    anno_offset = 50.0
+    plt_path = plot(path[1:homing_start, 1], path[1:homing_start, 2], color=:blue, label="Outbound", axis=([], false), legend=true)
+    plot!(plt_path, path[homing_start:end, 1], path[homing_start:end, 2], color=:orange, label="Inbound")
+    scatter!(plt_path, [path[1, 1]], [path[1, 2]], marker=(:circle, 4, :red), label=false)
+    #annotate!(plt_path, path[1, 1] + anno_offset, path[1, 2] + anno_offset, text("nest", :red, :right, 8))  
+    scatter!(plt_path, [path[homing_start, 1]], [path[homing_start, 2]], marker=(:diamond, 4, :purple), label=false)
+    #annotate!(plt_path, path[homing_start, 1] + anno_offset, path[homing_start, 2] + anno_offset, text("food", :purple, :right, 8))
 
-    plot(plt_path, plt_memory_1, plt_memory_2; layout = (1, 3), size=(1400, 800),)
+    #quiver!(plt_path, [path[end, 1]], [path[end, 2]], quiver=([dx*steps/50], [dy*steps/50]), arrow=:closed, color=:orange, linewidth=2)
+
+    #plot(plt_path, plt_memory_1, plt_memory_2; layout = (1, 3), size=(1400, 800),)
+    plot(plt_path)
 end
 
 function memory_to_prior(memory::Dict)
@@ -119,7 +128,7 @@ function direction_to_heading(memory::Dict)
     return deg2rad(headings[max_dir])
 end
 
-function homing_walk(heading::Float64, velocity::Vector{Float64}, position::Vector{Float64}, actions::Dict, left_vm::VonMises, right_vm::VonMises)      
+function homing_walk(heading::Float64, velocity::Vector{Float64}, position::Vector{Float64}, actions::Dict, left_vm::VonMises, right_vm::VonMises, straight_vm::VonMises)      
     theta = heading
     
     if haskey(actions, :st_left)
@@ -128,14 +137,14 @@ function homing_walk(heading::Float64, velocity::Vector{Float64}, position::Vect
             println("left")
             theta = rotate(heading, rand(left_vm))
         end
-    end
-
-    if haskey(actions, :st_right)
+    elseif haskey(actions, :st_right)
         p = Categorical(actions[:st_right])
         if rand(p) - 1 == 1
             println("right")
             theta = rotate(heading, rand(right_vm))
         end
+    else
+        theta = rotate(heading, rand(straight_vm))
     end
 
     next_heading, next_velocity = next_movement_state(velocity, theta, default_acc, default_drag)
