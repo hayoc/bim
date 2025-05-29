@@ -29,7 +29,7 @@ function predictive_processing(hypotheses, exteroception, proprioception, homing
             initialization = initialization,
         )
     else
-        @debug "Hypotheses: $(print_vec(hypotheses[:compass]))"
+        @debug "Hypotheses: compass => $(print_vec(hypotheses[:compass]))"
 
         result = infer(
             model = model_walking(h = hypotheses), 
@@ -106,7 +106,7 @@ end
 function gen_memory_cpt()
     cpt = zeros(8, 8)
 
-    pattern = [0.033, 0.033, 0.1, 0.20, 0.30, 0.20, 0.1, 0.033]
+    pattern = [0.001, 0.001, 0.001, 0.3, 0.3, 0.3, 0.001, 0.001]
     pattern = pattern ./ sum(pattern)
 
     for i in 1:8

@@ -1,12 +1,8 @@
 module Loggy
 
-export print_vec, init_loggy, print_loop
+export print_vec, init_loggy
 
 using Logging, LoggingExtras, Dates
-
-function print_loop(i)
-    return "------------------------$(i)------------------------"
-end
 
 function print_vec(v)
     return "["*join(round.(v, sigdigits=3),",")*"]"
@@ -21,7 +17,7 @@ function init_loggy()
         #print(io, " [", args.file, ":", args.line, "] ")
         println(io, args.message)
     end
-    logger = LevelOverrideLogger(Logging.Debug, logger) 
+    logger = LevelOverrideLogger(Logging.Info, logger) 
     global_logger(logger)
 end
 
