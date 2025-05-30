@@ -1,46 +1,34 @@
-using Plots
+using Random
+using CairoMakie
+using FileIO
 
+n_steps = 100
+step_size = 0.1  
 
-default_acc = 0.15  
-default_drag = 0.15
+path = zeros(Float64, n_steps, 2)
 
-function walk(heading::Float64, velocity::Vector{Float64}, position::Vector{Float64})
-    next_heading, next_velocity = next_movement_state(velocity, heading, default_acc, default_drag)
-    return next_heading, next_velocity, position + next_velocity
+for i in 2:n_steps
+    step = randn(2) .* step_size  
+    path[i, :] = path[i-1, :] .+ step
 end
 
-function next_movement_state(velocity, theta, acceleration, drag)
-    v = velocity + thrust(theta, acceleration)
-    v -= drag * v
-    return theta, v
+fig = Figure()
+ax = Axis(fig[1,1])
+xlims!(ax, extrema(path[:, 1])...)
+ylims!(ax, extrema(path[:, 2])...)
+
+segment = Observable(path[1:1, :])
+lines!(ax, segment)  
+
+ant_img = load("res/ant.png")
+ant_pos = Observable(reshape(path[1, :], 1, 2))  # Initial position of the ant
+ant_angle = Observable(0.0) 
+scatter!(ax, ant_pos; marker=ant_img, markersize=20, rotation=ant_angle)  
+
+
+record(fig, "animation.gif", 2:n_steps, framerate=10) do t
+    segment[] = path[1:t, :]  
+    ant_pos[] = reshape(path[t, :], 1, 2) 
+    dir = path[t, :] .- path[t-1, :]
+    ant_angle[] = atan(dir[2], dir[1])
 end
-
-function rotate(theta, r)
-    return (theta + r + π) % (2.0 * π) - π
-end
-
-function thrust(theta, acceleration)
-    return [sin(theta), cos(theta)] * acceleration
-end
-
-function run()
-    steps = 5
-    heading = 0.0
-    path = zeros(steps, 2)
-    velocity = [0.0, 0.0]
-    for i in 2:steps
-        heading = rotate(heading, deg2rad(90.0))  
-        heading, velocity, position = walk(heading, [0.0, 0.0], path[i-1, :])
-        path[i, :] = position
-    end
-
-    println("Path: ", path)
-
-    plot(path[:, 1], path[:, 2], color=:blue, label="Outbound", legend=false)
-end
-
-run()
-
-
-
-

@@ -1,4 +1,3 @@
-using Plots
 using Random
 using Distributions
 using DSP
@@ -7,6 +6,10 @@ includet("../../utils/loggy.jl")
 using .Loggy
 includet("model.jl")
 using .PPModel
+includet("gifs.jl")
+using .Gifs
+includet("graphs.jl")
+using .Graphs
 
 default_acc = 0.15  
 default_drag = 0.15
@@ -21,19 +24,19 @@ straight_vm = VonMises(0.0, 1000.0)
 left_vm = VonMises(deg2rad(-turn_speed), 100.0)
 right_vm = VonMises(deg2rad(turn_speed), 100.0)
 
+# TODO: sometimes overshoots nest, so increase memory loss?
+
 # TODO: have probabilities of turning depend on memory (how obvious a certain direction is)
 # as memory becomes more equalized, probabilities of turning decrease
 
 # TODO: maybe dont execute homing every step, sometimes let him walk straight to give memory a chance to update
 
 function run_experiment() 
-    #Random.seed!(422)
-    plotlyjs()
-    #gr()
+    Random.seed!(422)
 
     noisy = true
     steps = 2000
-    snapshot_every = 100
+    snapshot_every = 10
     homing_start = div(steps, 2)
 
     path = zeros(steps, 2)
@@ -77,7 +80,7 @@ function run_experiment()
         _, a = predictive_processing(walking_h, ext, walking_pro, false)
         memory = act_walking(memory, a)
 
-        if homing == false && i > homing_start
+        if i > homing_start
             homing = true
         end 
 
@@ -86,41 +89,7 @@ function run_experiment()
         end
     end
 
-    mem_plots = []
-    for (step, snapshot) in snapshots[end-5:end]
-        mem_plot = bar(
-            directions, [snapshot[d] for d in directions], 
-            label="memory at $step", 
-            xlabel="step $step", ylabel="", title="", 
-            xticks=(0.5:1:7.5, ["N", "", "E", "", "S", "", "W", ""]),
-            guidefont=font(8), 
-            tickfont=font(6), 
-            legend=false, 
-            size=(200, 200)
-        )
-        hline!(mem_plot, [0.5], color=:red, linestyle=:dash, linewidth=2)
-        push!(mem_plots, mem_plot)
-    end 
-
-    path_plot = plot(path[1:homing_start, 1], path[1:homing_start, 2], color=:blue, label="Outbound", legend=true, axis=([], false))
-    plot!(path_plot, path[homing_start:end, 1], path[homing_start:end, 2], color=:orange, label="Inbound")
-
-    scatter!(path_plot, [path[1, 1]], [path[1, 2]], marker=(:circle, 4, :red), label=false)
-    scatter!(path_plot, [path[homing_start, 1]], [path[homing_start, 2]], marker=(:diamond, 4, :purple), label=false)
-
-    # for i in 1:snapshot_every:steps
-    #     annotate!(path_plot, path[i, 1], path[i, 2], text(string(i-1), :black, 8))
-    # end
-
-    # θ_hat = direction_to_heading(memory)
-    # dx, dy = sin(θ_hat), cos(θ_hat)
-    #annotate!(path_plot, path[1, 1] + anno_offset, path[1, 2] + anno_offset, text("nest", :red, :right, 8))  
-    #annotate!(path_plot, path[homing_start, 1] + anno_offset, path[homing_start, 2] + anno_offset, text("food", :purple, :right, 8))
-    #quiver!(path_plot, [path[end, 1]], [path[end, 2]], quiver=([dx*steps/50], [dy*steps/50]), arrow=:closed, color=:orange, linewidth=2)
-
-    layout = @layout [a{0.9w, 0.7h}; grid(1, length(mem_plots))]
-    #plot(path_plot, mem_plots...; layout=layout, size=(1000, 500))
-    plot(path_plot)
+    plot_results(path, snapshots, thetas, homing_start)
 end
 
 function memory_to_prior(memory::Dict)
@@ -161,14 +130,14 @@ end
 
 function homing_walk(theta::Float64, velocity::Vector{Float64}, position::Vector{Float64}, actions::Dict, noisy::Bool = true)      
     if haskey(actions, :st_left)
-        p = Categorical(actions[:st_left])
+        p = Distributions.Categorical(actions[:st_left])
         if rand(p) - 1 == 0
             theta = turn_left(theta, noisy)
         end
     end
 
     if haskey(actions, :st_right)
-        p = Categorical(actions[:st_right])
+        p = Distributions.Categorical(actions[:st_right])
         if rand(p) - 1 == 0
             theta = turn_right(theta, noisy)
         end
@@ -212,4 +181,9 @@ end
 
 function thrust(theta, acceleration)
     return [sin(theta), cos(theta)] * acceleration
+end
+
+function plot_results(path, snapshots, thetas, homing_start)
+    # plot_static(path, snapshots, homing_start)
+    plot_gif(path, snapshots, thetas, homing_start)
 end
