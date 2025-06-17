@@ -31,17 +31,19 @@ right_vm = VonMises(deg2rad(turn_speed), 100.0)
 
 # TODO: maybe dont execute homing every step, sometimes let him walk straight to give memory a chance to update
 
-function run_experiment() 
-    Random.seed!(422)
+# TODO: major change in model: use one large model, including the random walk and then join memory update and homing
 
-    noisy = true
-    steps = 2000
-    snapshot_every = 10
-    homing_start = div(steps, 2)
+function run_experiment() 
+    #Random.seed!(468)
+
+    noisy = true # adds some randomness to agent's turns during homing
+    steps = 4000 # number of steps to take
+    snapshot_every = 10 # how often to take a snapshot of the memory
+    homing_start = div(steps, 2) #  # when to start homing
 
     path = zeros(steps, 2)
     
-    ext = Dict() # exteroception
+    ext = Dict() # exteroception, not used in this experiment since compass & memory are used as hypotheses
     
     walking_pro = Dict(:memory=>[0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125],) # proprioception
     walking_h = Dict(:compass=>[0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125],) # hypotheses
@@ -52,15 +54,14 @@ function run_experiment()
     
     θ = 0.0 # heading
     v = [0.0, 0.0] # velocity x,y
+    thetas = [] # tracks headings
     homing = false
-
-    thetas = []
 
     memory = Dict(d => 0.5 for d in directions)
     snapshots = Vector{Tuple{Int, Dict{String, Float64}}}()
 
     for i = 2:steps
-        @debug string("-- ", i, " --", rad2deg(θ))
+        @debug string("-- ", i, " --")
         
         compass = [i == heading_to_index(θ) ? 1.0 : 0.0 for i in 1:8]
         walking_h[:compass] = compass
