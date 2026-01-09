@@ -24,8 +24,6 @@ straight_vm = VonMises(0.0, 1000.0)
 left_vm = VonMises(deg2rad(-turn_speed), 100.0)
 right_vm = VonMises(deg2rad(turn_speed), 100.0)
 
-# TODO: sometimes overshoots nest, so increase memory loss?
-
 # TODO: have probabilities of turning depend on memory (how obvious a certain direction is)
 # as memory becomes more equalized, probabilities of turning decrease
 
@@ -34,7 +32,7 @@ right_vm = VonMises(deg2rad(turn_speed), 100.0)
 # TODO: major change in model: use one large model, including the random walk and then join memory update and homing
 
 function run_experiment() 
-    #Random.seed!(468)
+    Random.seed!(468)
 
     noisy = true # adds some randomness to agent's turns during homing
     steps = 4000 # number of steps to take
